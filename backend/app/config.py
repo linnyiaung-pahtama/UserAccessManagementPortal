@@ -37,6 +37,15 @@ class Settings(BaseSettings):
     # Users created or edited in the portal must have an email at this company domain.
     allowed_email_domain: str = "pahtama.com"
 
+    # Mail server for emailing admins about new access requests (mailer.py). Leave SMTP_HOST empty to send nothing:
+    # requests still appear on the Access requests page.
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = ""  # defaults to "Access Portal <SMTP_USER>"
+    smtp_use_tls: bool = True  # STARTTLS (port 587)
+
     @field_validator("issuer", "frontend_url")
     @classmethod
     def _strip_slash(cls, v: str) -> str:

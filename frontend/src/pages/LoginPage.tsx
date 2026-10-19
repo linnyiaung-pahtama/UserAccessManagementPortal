@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { errorMessage } from "../api";
 import { useAuth } from "../auth";
 import Icon from "../components/Icon";
@@ -83,6 +83,9 @@ export default function LoginPage() {
           <button className="btn primary block large" disabled={busy}>
             {busy ? <><span className="spinner light" /> Signing in…</> : "Sign in"}
           </button>
+          <p className="auth-alt">
+            Don't have access? <Link to={next ? `/request-access?next=${encodeURIComponent(next)}` : "/request-access"}>Request access</Link>
+          </p>
         </form>
       </main>
     </div>

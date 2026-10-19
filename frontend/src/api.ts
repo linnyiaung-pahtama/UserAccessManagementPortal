@@ -140,6 +140,28 @@ export interface AuditEntry {
   ip: string;
 }
 
+export interface RequestableSystem {
+  id: number;
+  name: string;
+  client_id: string;
+}
+
+export interface AccessRequest {
+  id: number;
+  email: string;
+  application_id: number;
+  application_name: string;
+  status: "open" | "approved" | "declined";
+  created_at: string;
+  handled_at: string | null;
+  handled_by: string | null;
+  user_id: number | null; // the account with this email, if there is one
+  username: string | null;
+  user_active: boolean | null;
+  current_roles: string[]; // the account's roles in this system already
+  roles: { id: number; name: string }[]; // the system's roles, to choose from when approving
+}
+
 export function parseDate(value: string): Date {
   // API timestamps are UTC without a zone suffix.
   return new Date(value.endsWith("Z") ? value : value + "Z");

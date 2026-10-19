@@ -118,6 +118,7 @@ code {
 .nav-item:hover { background: var(--sidebar-hover); color: #fff; }
 .nav-item.active { background: var(--sidebar-active); color: #fff; }
 .nav-item.active svg { color: #8ea6ff; }
+.nav-count { margin-left: auto; min-width: 20px; padding: 1px 7px; border-radius: 999px; background: var(--primary, #4f6bff); color: #fff; font-size: 12px; font-weight: 600; text-align: center; }
 .nav-item.as-button { width: 100%; border: none; background: none; font: inherit; cursor: pointer; text-align: left; }
 .sidebar-footer { border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 12px; display: flex; flex-direction: column; gap: 2px; }
 .user-card { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--radius-sm); text-decoration: none !important; }
@@ -419,6 +420,7 @@ a.list-row:hover { background: var(--surface-2); }
 .auth-form { width: 100%; max-width: 380px; }
 .auth-form h1 { margin-bottom: 6px; }
 .auth-form > p { margin-bottom: 24px; }
+.auth-form > p.auth-alt { margin: 18px 0 0; text-align: center; font-size: 14px; color: var(--muted, #6b7280); }
 @media (max-width: 860px) {
   .auth-page { grid-template-columns: 1fr; }
   .auth-hero { padding: 24px; gap: 20px; }

@@ -25,6 +25,9 @@ const LABELS: Record<string, string> = {
   "permission.create": "added permission",
   "permission.update": "updated permission",
   "permission.delete": "deleted permission",
+  "access.request": "requested access:",
+  "access.approve": "approved the access request of",
+  "access.decline": "declined the access request of",
 };
 // Actions where the target is the actor themselves.
 const SELF_ACTIONS = new Set(["login", "logout", "user.password_changed"]);
@@ -44,7 +47,7 @@ const FILTERS = {
   all: { label: "All", match: () => true },
   signin: { label: "Sign-ins", match: (a: string) => a.startsWith("login") || a === "logout" || a.startsWith("sso.") },
   access: { label: "Access changes", match: (a: string) => a === "user.roles" || a.startsWith("role.") || a.startsWith("permission.") },
-  admin: { label: "Users & systems", match: (a: string) => (a.startsWith("user.") && a !== "user.roles") || a.startsWith("app.") },
+  admin: { label: "Users & systems", match: (a: string) => (a.startsWith("user.") && a !== "user.roles") || a.startsWith("app.") || a.startsWith("access.") },
   problems: { label: "Problems", match: (a: string) => a.endsWith("failed") || a.endsWith("denied") },
 } as const;
 type FilterId = keyof typeof FILTERS;

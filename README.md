@@ -90,6 +90,26 @@ pytest
 
 A user can sign in to a system only if they hold **at least one** of its roles. Otherwise the portal shows "Access denied" and no token is issued.
 
+### Access requests
+
+People without access click **Request access** under the sign-in form, enter their company email and choose a system (pre-selected when a system sent them to sign in). Admins see the requests under **Access requests** (the menu shows how many are open):
+
+- **Approve:** with no account for that email yet, enter a username (suggested from the email) and a temporary password, and choose a role: the account is created and gets the role, and must change its password at first sign-in. With an existing account, just choose the role to add. Give the person their sign-in details directly; the portal doesn't email them.
+- **Decline:** closes the request; the person isn't told.
+
+The public page answers the same whether or not an account exists, ignores a repeat of an open request or a request for access the person already has, and accepts at most 5 requests an hour from one address. Requests, approvals and declines are in the audit log.
+
+**Email to admins (optional):** set the mail server in `backend/.env` and every active admin is emailed about each new request. Without `SMTP_HOST`, nothing is sent.
+
+```
+SMTP_HOST=smtp.office365.com
+SMTP_PORT=587
+SMTP_USER=mailbox@pahtama.com
+SMTP_PASSWORD=...
+SMTP_FROM=Access Portal <mailbox@pahtama.com>   # optional; defaults to "Access Portal <SMTP_USER>"
+SMTP_USE_TLS=true
+```
+
 ## Integrating a system
 
 Systems use a standard OpenID Connect library; no portal-specific code is needed. Each system's

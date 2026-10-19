@@ -1,14 +1,17 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { api } from "../api";
 import { useAuth } from "../auth";
+import { REQUESTS_CHANGED } from "../pages/admin/AccessRequestsPage";
 import Icon, { type IconName } from "./Icon";
 import { Avatar } from "./ui";
 
-function NavItem({ to, icon, label, end }: { to: string; icon: IconName; label: string; end?: boolean }) {
+function NavItem({ to, icon, label, end, count }: { to: string; icon: IconName; label: string; end?: boolean; count?: number }) {
   return (
     <NavLink to={to} end={end} className="nav-item">
       <Icon name={icon} size={17} />
       <span>{label}</span>
+      {!!count && <span className="nav-count">{count}</span>}
     </NavLink>
   );
 }
@@ -20,6 +23,18 @@ export default function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => setMenuOpen(false), [location.pathname]);
+
+  // Open access requests, shown next to the menu item; refreshed on every page change and after one is handled.
+  const [openRequests, setOpenRequests] = useState(0);
+  useEffect(() => {
+    if (!user?.is_admin) return;
+    const load = () => {
+      api.get<{ open: number }>("/api/admin/access-requests/count").then((r) => setOpenRequests(r.open)).catch(() => {});
+    };
+    load();
+    window.addEventListener(REQUESTS_CHANGED, load);
+    return () => window.removeEventListener(REQUESTS_CHANGED, load);
+  }, [user?.is_admin, location.pathname]);
 
   async function handleLogout() {
     await logout();
@@ -44,6 +59,7 @@ export default function Layout() {
               <NavItem to="/admin" end icon="dashboard" label="Overview" />
               <NavItem to="/admin/users" icon="users" label="Users" />
               <NavItem to="/admin/applications" icon="layers" label="Systems" />
+              <NavItem to="/admin/access-requests" icon="inbox" label="Access requests" count={openRequests} />
               <NavItem to="/admin/audit" icon="activity" label="Audit log" />
             </>
           )}

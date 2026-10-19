@@ -11,7 +11,7 @@ from .config import settings
 from .cors import WebOriginsCORS
 from .database import SessionLocal, create_schema
 from .models import AuthorizationCode, PortalSession, RefreshToken, User
-from .routers import applications, audit, auth, oauth, overview, users
+from .routers import access_requests, applications, audit, auth, oauth, overview, users
 from .security import hash_password, new_token, signing_keys, utcnow
 
 log = logging.getLogger("uam")
@@ -53,6 +53,8 @@ app.include_router(users.router)
 app.include_router(applications.router)
 app.include_router(audit.router)
 app.include_router(overview.router)
+app.include_router(access_requests.public)
+app.include_router(access_requests.router)
 app.include_router(oauth.router)
 
 

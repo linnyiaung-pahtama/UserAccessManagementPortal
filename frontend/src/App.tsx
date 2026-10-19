@@ -6,6 +6,8 @@ import AppsPage from "./pages/AppsPage";
 import ChangePasswordPage from "./pages/ChangePasswordPage";
 import LoginPage from "./pages/LoginPage";
 import ProfilePage from "./pages/ProfilePage";
+import RequestAccessPage from "./pages/RequestAccessPage";
+import AccessRequestsPage from "./pages/admin/AccessRequestsPage";
 import ApplicationDetailPage from "./pages/admin/ApplicationDetailPage";
 import ApplicationsPage from "./pages/admin/ApplicationsPage";
 import AuditPage from "./pages/admin/AuditPage";
@@ -17,6 +19,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/request-access" element={<RequestAccessPage />} />
       <Route path="/access-denied" element={<AccessDeniedPage />} />
       <Route path="/change-password" element={<ChangePasswordPage />} />
       <Route
@@ -33,7 +36,8 @@ export default function App() {
         <Route path="admin/users/:id" element={<RequireAuth admin><UserDetailPage /></RequireAuth>} />
         <Route path="admin/applications" element={<RequireAuth admin><ApplicationsPage /></RequireAuth>} />
         <Route path="admin/applications/:id" element={<RequireAuth admin><ApplicationDetailPage /></RequireAuth>} />
-        <Route path="admin/audit" element={<RequireAuth admin><AuditPage /></RequireAuth>} />
+        <Route path="admin/access-requests" element={<RequireAuth admin><AccessRequestsPage /></RequireAuth>} />
+        <Route path="admin/audit"element={<RequireAuth admin><AuditPage /></RequireAuth>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

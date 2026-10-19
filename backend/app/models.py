@@ -156,6 +156,24 @@ class RefreshToken(Base):
     revoked: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
+class AccessRequest(Base):
+    """Someone asking, from the sign-in page, for access to a system. Admins approve (create the account if needed
+    and give a role) or decline it."""
+
+    __tablename__ = "access_requests"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    email: Mapped[str] = mapped_column(Unicode(255), index=True)
+    application_id: Mapped[int] = mapped_column(ForeignKey("applications.id", ondelete="CASCADE"), index=True)
+    status: Mapped[str] = mapped_column(Unicode(20), default="open", index=True)  # open, approved, declined
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    ip: Mapped[str] = mapped_column(Unicode(64), default="")
+    handled_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    handled_by: Mapped[str | None] = mapped_column(Unicode(100), nullable=True)  # admin's username
+
+    application: Mapped[Application] = relationship()
+
+
 class AuditLog(Base):
     __tablename__ = "audit_logs"
 

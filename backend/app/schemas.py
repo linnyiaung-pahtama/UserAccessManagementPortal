@@ -252,3 +252,45 @@ class AuditOut(ORM):
     target: str
     detail: str
     ip: str
+
+
+# ---------------------------------------------------------------- access requests
+
+class RequestableSystem(BaseModel):
+    """An active system shown on the public Request access page."""
+    id: int
+    name: str
+    client_id: str  # lets the page pre-select the system the person came from
+
+
+class AccessRequestCreate(BaseModel):
+    email: EmailStr
+    application_id: int
+
+
+class RoleChoice(BaseModel):
+    id: int
+    name: str
+
+
+class AccessRequestOut(BaseModel):
+    id: int
+    email: str
+    application_id: int
+    application_name: str
+    status: str  # open, approved, declined
+    created_at: datetime
+    handled_at: datetime | None
+    handled_by: str | None
+    user_id: int | None  # the account with this email, if there is one
+    username: str | None
+    user_active: bool | None
+    current_roles: list[str]  # the account's roles in this system already
+    roles: list[RoleChoice]  # the system's roles, to choose from when approving
+
+
+class AccessRequestApprove(BaseModel):
+    role_id: int
+    # Only when there is no account with the request's email yet: the new account.
+    username: str | None = Field(default=None, pattern=USERNAME_PATTERN)
+    password: str | None = Field(default=None, min_length=8, max_length=72)

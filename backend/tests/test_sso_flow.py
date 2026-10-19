@@ -157,7 +157,8 @@ def test_non_admin_cannot_use_admin_api():
 def test_overview_and_access_summary(client: TestClient):
     # Runs after test_full_sso_flow: alice holds HR "viewer" and is disabled.
     users = {u["username"]: u for u in client.get("/api/admin/users").json()}
-    assert users["alice"]["access"] == [{"application_id": 1, "application_name": "HR", "roles": ["viewer"]}]
+    hr_id = next(a["id"] for a in client.get("/api/admin/applications").json() if a["name"] == "HR")
+    assert users["alice"]["access"] == [{"application_id": hr_id, "application_name": "HR", "roles": ["viewer"]}]
     assert client.get("/api/admin/applications").json()[0]["member_count"] == 1
 
     ov = client.get("/api/admin/overview").json()
