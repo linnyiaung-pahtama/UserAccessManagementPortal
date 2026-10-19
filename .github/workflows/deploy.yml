@@ -1,0 +1,22 @@
+# Deploys to the AWS test server on every push to main (and from the Actions tab: "Run workflow").
+# The server key in AWS_DEPLOY_KEY can only run "deploy uam" there (/usr/local/bin/pg-deploy), nothing else.
+name: Deploy to AWS
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+concurrency: deploy-aws
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Deploy on the AWS server
+        env:
+          KEY: ${{ secrets.AWS_DEPLOY_KEY }}
+          KNOWN_HOSTS: ${{ secrets.AWS_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ssh -o BatchMode=yes deploy@52.77.202.222 uam
