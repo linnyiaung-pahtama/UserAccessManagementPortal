@@ -170,6 +170,7 @@ class AccessRequest(Base):
     ip: Mapped[str] = mapped_column(Unicode(64), default="")
     handled_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     handled_by: Mapped[str | None] = mapped_column(Unicode(100), nullable=True)  # admin's username
+    reason: Mapped[str] = mapped_column(Unicode(500), default="")  # why it was declined (optional; emailed)
 
     application: Mapped[Application] = relationship()
 

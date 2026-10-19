@@ -13,11 +13,12 @@ from sqlalchemy.orm import Session as DbSession
 from ..config import settings
 from ..database import get_db
 from ..deps import audit, require_admin
-from ..mailer import send_mail
+from ..mailer import mail_configured, send_mail
 from ..models import AccessRequest, Application, Role, User
 from ..schemas import (
     AccessRequestApprove,
     AccessRequestCreate,
+    AccessRequestDecline,
     AccessRequestOut,
     RequestableSystem,
     RoleChoice,
@@ -94,7 +95,7 @@ def _out(db: DbSession, r: AccessRequest) -> AccessRequestOut:
     user = db.scalar(select(User).where(User.email == r.email))
     return AccessRequestOut(
         id=r.id, email=r.email, application_id=r.application_id, application_name=r.application.name,
-        status=r.status, created_at=r.created_at, handled_at=r.handled_at, handled_by=r.handled_by,
+        status=r.status, created_at=r.created_at, handled_at=r.handled_at, handled_by=r.handled_by, reason=r.reason,
         user_id=user.id if user else None, username=user.username if user else None,
         user_active=user.is_active if user else None,
         current_roles=user.roles_in(r.application_id) if user else [],
@@ -124,16 +125,22 @@ def open_count(db: DbSession = Depends(get_db), _: User = Depends(require_admin)
     return {"open": db.scalar(select(func.count(AccessRequest.id)).where(AccessRequest.status == "open"))}
 
 
+def _sign_in_link(app: Application) -> str:
+    """Where to go after approval: the system itself (it sends them to the portal's sign-in), else the portal."""
+    return app.home_url or f"{settings.frontend_url}/login"
+
+
 @router.post("/{request_id}/approve", response_model=AccessRequestOut)
-def approve(request_id: int, body: AccessRequestApprove, request: Request, db: DbSession = Depends(get_db),
-            admin: User = Depends(require_admin)):
+def approve(request_id: int, body: AccessRequestApprove, request: Request, background: BackgroundTasks,
+            db: DbSession = Depends(get_db), admin: User = Depends(require_admin)):
     r = _get_open(db, request_id)
     role = db.get(Role, body.role_id)
     if not role or role.application_id != r.application_id:
         raise HTTPException(400, f"Choose one of {r.application.name}'s roles")
 
     user = db.scalar(select(User).where(User.email == r.email))
-    if not user:
+    new_account = user is None
+    if new_account:
         if not body.username or not body.password:
             raise HTTPException(400, "There is no account with this email yet: enter a username and a temporary password")
         _check_domain(r.email)
@@ -150,13 +157,39 @@ def approve(request_id: int, body: AccessRequestApprove, request: Request, db: D
     r.status, r.handled_at, r.handled_by = "approved", utcnow(), admin.username
     audit(db, admin, "access.approve", target=r.email, detail=f"{r.application.name}:{role.name}", request=request)
     db.commit()
-    return _out(db, r)
+
+    app = r.application
+    if new_account:
+        # Chosen by the company: the temporary password goes in the email. It works once: the portal makes them
+        # choose their own at the first sign-in.
+        body_text = (
+            f"Hello,\n\nYour request for access to {app.name} has been approved. An account was created for you:\n\n"
+            f"  Username: {user.username}\n  Temporary password: {body.password}\n\n"
+            f"Sign in here: {_sign_in_link(app)}\n\n"
+            "You will be asked to choose your own password the first time you sign in.\n"
+        )
+    else:
+        body_text = (
+            f"Hello,\n\nYour request for access to {app.name} has been approved. Sign in with your existing "
+            f"account ({user.username}):\n\n{_sign_in_link(app)}\n"
+        )
+    background.add_task(send_mail, [r.email], f"Your access to {app.name} is approved", body_text)
+    return _out(db, r).model_copy(update={"emailed": mail_configured()})
 
 
 @router.post("/{request_id}/decline", response_model=AccessRequestOut)
-def decline(request_id: int, request: Request, db: DbSession = Depends(get_db), admin: User = Depends(require_admin)):
+def decline(request_id: int, request: Request, background: BackgroundTasks, body: AccessRequestDecline | None = None,
+            db: DbSession = Depends(get_db), admin: User = Depends(require_admin)):
     r = _get_open(db, request_id)
-    r.status, r.handled_at, r.handled_by = "declined", utcnow(), admin.username
-    audit(db, admin, "access.decline", target=r.email, detail=r.application.name, request=request)
+    reason = body.reason.strip() if body else ""
+    r.status, r.handled_at, r.handled_by, r.reason = "declined", utcnow(), admin.username, reason
+    audit(db, admin, "access.decline", target=r.email, detail=r.application.name + (f": {reason}" if reason else ""),
+          request=request)
     db.commit()
-    return _out(db, r)
+    background.add_task(
+        send_mail, [r.email], f"Your request for access to {r.application.name}",
+        f"Hello,\n\nYour request for access to {r.application.name} was declined."
+        + (f"\n\nReason: {reason}" if reason else "")
+        + "\n\nIf you have questions, please contact your IT administrator.\n",
+    )
+    return _out(db, r).model_copy(update={"emailed": mail_configured()})

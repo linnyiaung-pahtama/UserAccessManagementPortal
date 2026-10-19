@@ -155,11 +155,13 @@ export interface AccessRequest {
   created_at: string;
   handled_at: string | null;
   handled_by: string | null;
+  reason: string; // why it was declined (emailed to them)
   user_id: number | null; // the account with this email, if there is one
   username: string | null;
   user_active: boolean | null;
   current_roles: string[]; // the account's roles in this system already
   roles: { id: number; name: string }[]; // the system's roles, to choose from when approving
+  emailed?: boolean; // after approve/decline: whether the requester is being emailed (a mail server is set)
 }
 
 export function parseDate(value: string): Date {

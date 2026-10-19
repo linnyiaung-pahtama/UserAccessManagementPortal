@@ -46,6 +46,7 @@ def create_schema() -> None:
     added = [  # (table, column, SQLite definition, SQL Server definition)
         ("applications", "web_origins", "JSON DEFAULT '[]'", "NVARCHAR(max) NOT NULL DEFAULT '[]'"),
         ("users", "must_change_password", "BOOLEAN NOT NULL DEFAULT 0", "BIT NOT NULL DEFAULT 0"),
+        ("access_requests", "reason", "VARCHAR(500) NOT NULL DEFAULT ''", "NVARCHAR(500) NOT NULL DEFAULT ''"),
     ]
     for table, column, sqlite_def, mssql_def in added:
         if column not in {c["name"] for c in inspect(engine).get_columns(table)}:

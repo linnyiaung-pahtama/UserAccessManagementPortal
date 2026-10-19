@@ -23,7 +23,7 @@ function usernameFrom(email: string): string {
 }
 
 export default function AccessRequestsPage() {
-  const { toast, confirm } = useFeedback();
+  const { toast } = useFeedback();
   const [requests, setRequests] = useState<AccessRequest[] | null>(null);
   const [filter, setFilter] = useState<FilterId>("open");
   const [error, setError] = useState("");
@@ -32,6 +32,8 @@ export default function AccessRequestsPage() {
   const [form, setForm] = useState({ role_id: "", username: "", password: "" });
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [declining, setDeclining] = useState<AccessRequest | null>(null);
+  const [reason, setReason] = useState("");
 
   async function refresh() {
     setRequests(await api.get<AccessRequest[]>("/api/admin/access-requests"));
@@ -62,11 +64,12 @@ export default function AccessRequestsPage() {
         ? { role_id: Number(form.role_id) }
         : { role_id: Number(form.role_id), username: form.username, password: form.password };
       const done = await api.post<AccessRequest>(`/api/admin/access-requests/${approving.id}/approve`, body);
-      toast(
-        approving.user_id
-          ? `${done.username} now has access to ${done.application_name}.`
-          : `${done.username} created with access to ${done.application_name}. Share the temporary password with them.`,
-      );
+      const told = approving.user_id
+        ? done.emailed ? "They're emailed." : "Mail isn't set up: let them know yourself."
+        : done.emailed
+          ? "Their username and temporary password are emailed to them."
+          : "Mail isn't set up: give them their username and temporary password yourself.";
+      toast(`${done.username} ${approving.user_id ? "now has" : "created with"} access to ${done.application_name}. ${told}`);
       setApproving(null);
       await refresh();
     } catch (err) {
@@ -76,20 +79,21 @@ export default function AccessRequestsPage() {
     }
   }
 
-  async function handleDecline(r: AccessRequest) {
-    const ok = await confirm({
-      title: "Decline this request?",
-      message: `${r.email} won't get access to ${r.application_name}. They aren't notified.`,
-      confirmLabel: "Decline",
-      danger: true,
-    });
-    if (!ok) return;
+  async function handleDecline(e: FormEvent) {
+    e.preventDefault();
+    if (!declining) return;
+    setSaving(true);
     try {
-      await api.post(`/api/admin/access-requests/${r.id}/decline`);
-      toast("Request declined");
+      const done = await api.post<AccessRequest>(`/api/admin/access-requests/${declining.id}/decline`, { reason });
+      toast(done.emailed
+        ? `Request declined. ${declining.email} is emailed${reason.trim() ? " with your reason" : ""}.`
+        : "Request declined. Mail isn't set up, so they aren't emailed.");
+      setDeclining(null);
       await refresh();
     } catch (err) {
       toast(errorMessage(err), "error");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -145,12 +149,13 @@ export default function AccessRequestsPage() {
                     <td>
                       <Badge tone={STATUS_TONE[r.status]}>{r.status[0].toUpperCase() + r.status.slice(1)}</Badge>
                       {r.handled_by && <div className="muted small">by {r.handled_by}</div>}
+                      {r.reason && <div className="muted small" title={r.reason}>Reason: {r.reason}</div>}
                     </td>
                     <td className="nowrap">
                       {r.status === "open" && (
                         <div className="row">
                           <button className="btn primary small" onClick={() => openApprove(r)}>Approve</button>
-                          <button className="btn small" onClick={() => handleDecline(r)}>Decline</button>
+                          <button className="btn small" onClick={() => { setReason(""); setDeclining(r); }}>Decline</button>
                         </div>
                       )}
                     </td>
@@ -210,7 +215,7 @@ export default function AccessRequestsPage() {
                     maxLength={72}
                     required
                   />
-                  <span className="hint">Give it to them directly. They choose their own the first time they sign in.</span>
+                  <span className="hint">It's emailed to them with their username (when mail is set up). They choose their own the first time they sign in.</span>
                 </label>
               </>
             )}
@@ -224,6 +229,30 @@ export default function AccessRequestsPage() {
                   </option>
                 ))}
               </select>
+            </label>
+          </form>
+        )}
+      </Modal>
+      <Modal
+        open={!!declining}
+        title="Decline this request?"
+        onClose={() => setDeclining(null)}
+        footer={
+          <>
+            <button className="btn" onClick={() => setDeclining(null)}>Cancel</button>
+            <button className="btn danger" form="decline-request" disabled={saving}>{saving ? "Declining…" : "Decline"}</button>
+          </>
+        }
+      >
+        {declining && (
+          <form id="decline-request" className="form-grid" onSubmit={handleDecline}>
+            <p className="span-2 muted small">
+              <strong>{declining.email}</strong> won't get access to {declining.application_name}. They're emailed that the request was declined.
+            </p>
+            <label className="span-2">
+              Reason (optional)
+              <textarea className="prose" value={reason} onChange={(e) => setReason(e.target.value)} maxLength={500} rows={3} autoFocus />
+              <span className="hint">If you write one, it's included in the email.</span>
             </label>
           </form>
         )}

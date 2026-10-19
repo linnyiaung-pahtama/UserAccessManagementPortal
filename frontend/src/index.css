@@ -194,6 +194,7 @@ input:not([type="checkbox"]):not([type="radio"]), textarea, select {
 input::placeholder, textarea::placeholder { color: var(--muted); opacity: 0.8; }
 input:focus, textarea:focus, select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
 textarea { resize: vertical; font-family: "Cascadia Code", Consolas, monospace; font-size: 13px; }
+textarea.prose { font: inherit; }  /* written text (e.g. a decline reason), not URLs */
 input[type="checkbox"], input[type="radio"] { accent-color: var(--primary); width: 16px; height: 16px; margin: 2px 0 0; flex-shrink: 0; }
 label.check { display: flex; align-items: flex-start; gap: 10px; font-weight: 500; }
 

@@ -282,11 +282,13 @@ class AccessRequestOut(BaseModel):
     created_at: datetime
     handled_at: datetime | None
     handled_by: str | None
+    reason: str = ""  # why it was declined
     user_id: int | None  # the account with this email, if there is one
     username: str | None
     user_active: bool | None
     current_roles: list[str]  # the account's roles in this system already
     roles: list[RoleChoice]  # the system's roles, to choose from when approving
+    emailed: bool = False  # after approve/decline: whether the requester is being emailed (a mail server is set)
 
 
 class AccessRequestApprove(BaseModel):
@@ -294,3 +296,7 @@ class AccessRequestApprove(BaseModel):
     # Only when there is no account with the request's email yet: the new account.
     username: str | None = Field(default=None, pattern=USERNAME_PATTERN)
     password: str | None = Field(default=None, min_length=8, max_length=72)
+
+
+class AccessRequestDecline(BaseModel):
+    reason: str = Field(default="", max_length=500)  # optional; included in the email to the requester

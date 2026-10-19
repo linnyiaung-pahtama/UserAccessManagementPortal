@@ -94,12 +94,12 @@ A user can sign in to a system only if they hold **at least one** of its roles. 
 
 People without access click **Request access** under the sign-in form, enter their company email and choose a system (pre-selected when a system sent them to sign in). Admins see the requests under **Access requests** (the menu shows how many are open):
 
-- **Approve:** with no account for that email yet, enter a username (suggested from the email) and a temporary password, and choose a role: the account is created and gets the role, and must change its password at first sign-in. With an existing account, just choose the role to add. Give the person their sign-in details directly; the portal doesn't email them.
-- **Decline:** closes the request; the person isn't told.
+- **Approve:** with no account for that email yet, enter a username (suggested from the email) and a temporary password, and choose a role: the account is created and gets the role, and must change its password at first sign-in. With an existing account, just choose the role to add. The person is emailed: a new account gets its username, **temporary password**, and where to sign in (the system's launch URL); an existing one gets the system and its username.
+- **Decline:** closes the request, with an optional reason. The person is emailed that it was declined, with the reason if there is one.
 
 The public page answers the same whether or not an account exists, ignores a repeat of an open request or a request for access the person already has, and accepts at most 5 requests an hour from one address. Requests, approvals and declines are in the audit log.
 
-**Email to admins (optional):** set the mail server in `backend/.env` and every active admin is emailed about each new request. Without `SMTP_HOST`, nothing is sent.
+**Email (optional):** set the mail server in `backend/.env`: every active admin is emailed about each new request, and the requester about the decision. Without `SMTP_HOST`, nothing is sent, and the admin page says so after each decision (then tell the person yourself).
 
 ```
 SMTP_HOST=smtp.office365.com

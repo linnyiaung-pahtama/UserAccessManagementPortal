@@ -10,7 +10,9 @@ REDIRECT = "http://req.local/callback"
 
 def test_request_approve_and_decline(client: TestClient, monkeypatch):
     mails: list[tuple[list[str], str]] = []
-    monkeypatch.setattr(access_requests, "send_mail", lambda to, subject, body: mails.append((to, subject)) or True)
+    bodies: list[str] = []
+    monkeypatch.setattr(access_requests, "send_mail",
+                        lambda to, subject, body: mails.append((to, subject)) or bodies.append(body) or True)
     access_requests._recent.clear()
 
     assert client.post("/api/auth/login", json={"username": "admin", "password": "test-admin-pass"}).status_code == 200
@@ -50,6 +52,9 @@ def test_request_approve_and_decline(client: TestClient, monkeypatch):
     assert approved["username"] == "new.person" and approved["current_roles"] == ["viewer"]
     user = client.get(f"/api/admin/users/{approved['user_id']}").json()
     assert user["must_change_password"] is True and user["role_ids"] == [viewer["id"]]
+    # The requester is emailed their username and temporary password, with where to sign in.
+    assert mails[-1] == (["new.person@pahtama.com"], "Your access to Req System is approved")
+    assert "Username: new.person" in bodies[-1] and "Temporary password: temp-pass-1" in bodies[-1]
     assert client.post(f"/api/admin/access-requests/{rid}/decline").status_code == 409  # already handled
 
     with TestClient(app) as public:
@@ -62,6 +67,8 @@ def test_request_approve_and_decline(client: TestClient, monkeypatch):
     second = next(r for r in client.get("/api/admin/access-requests?status=open").json() if r["email"] == "new.person@pahtama.com")
     assert second["application_name"] == "Req Other" and second["username"] == "new.person"
     done = client.post(f"/api/admin/access-requests/{second['id']}/approve", json={"role_id": other_role["id"]}).json()
+    assert mails[-1] == (["new.person@pahtama.com"], "Your access to Req Other is approved")
+    assert "existing account (new.person)" in bodies[-1] and "password" not in bodies[-1].lower()
     assert sorted(done["current_roles"]) == ["user"]
     assert len(client.get(f"/api/admin/users/{done['user_id']}").json()["role_ids"]) == 2
 
@@ -69,8 +76,10 @@ def test_request_approve_and_decline(client: TestClient, monkeypatch):
     with TestClient(app) as public:
         public.post("/api/access-requests", json={"email": "spam.person@pahtama.com", "application_id": system["id"]})
     spam = next(r for r in client.get("/api/admin/access-requests?status=open").json() if r["email"] == "spam.person@pahtama.com")
-    declined = client.post(f"/api/admin/access-requests/{spam['id']}/decline").json()
-    assert declined["status"] == "declined" and declined["user_id"] is None
+    declined = client.post(f"/api/admin/access-requests/{spam['id']}/decline", json={"reason": "  Not a staff member.  "}).json()
+    assert declined["status"] == "declined" and declined["user_id"] is None and declined["reason"] == "Not a staff member."
+    assert mails[-1] == (["spam.person@pahtama.com"], "Your request for access to Req System")
+    assert "declined" in bodies[-1] and "Reason: Not a staff member." in bodies[-1]
 
     actions = [e["action"] for e in client.get("/api/admin/audit").json()]
     assert {"access.request", "access.approve", "access.decline"} <= set(actions)
