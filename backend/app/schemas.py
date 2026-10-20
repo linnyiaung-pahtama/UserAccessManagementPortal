@@ -46,6 +46,7 @@ class UserOut(ORM):
 
 class UserDetail(UserOut):
     role_ids: list[int]
+    emailed: bool = False  # after creating: whether their sign-in details are being emailed (a mail server is set)
 
 
 class SystemAccess(BaseModel):

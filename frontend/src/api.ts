@@ -54,6 +54,7 @@ export interface User {
 
 export interface UserDetail extends User {
   role_ids: number[];
+  emailed?: boolean; // after creating: whether their sign-in details are being emailed (a mail server is set)
 }
 
 export interface SystemAccess {

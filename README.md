@@ -88,6 +88,8 @@ pytest
 3. **Permissions tab:** add the permissions the system's code checks (e.g. `invoices.view`, `invoices.approve`), then tick which roles grant each one in the role × permission grid.
 4. **Users → user → System access.** Tick the roles the user should have in each system. The page previews the permissions the user will end up with before you save.
 
+When an admin creates a user, the portal emails them their username, email, temporary password, and the sign-in address (with the mail server set below; otherwise the admin page says to tell them yourself). They must choose their own password at the first sign-in.
+
 A user can sign in to a system only if they hold **at least one** of its roles. Otherwise the portal shows "Access denied" and no token is issued.
 
 ### Access requests

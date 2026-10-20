@@ -51,7 +51,9 @@ export default function UsersPage() {
     setSaving(true);
     try {
       const created = await api.post<UserDetail>("/api/admin/users", form);
-      toast(`${created.username} created. Now choose their system access.`);
+      toast(created.emailed
+        ? `${created.username} created and emailed their sign-in details. Now choose their system access.`
+        : `${created.username} created. Mail isn't set up: give them their sign-in details yourself. Now choose their system access.`);
       navigate(`/admin/users/${created.id}`);
     } catch (err) {
       setFormError(errorMessage(err));
@@ -180,7 +182,7 @@ export default function UsersPage() {
               maxLength={72}
               required
             />
-            <span className="hint">Share it with the user securely. It's temporary: they must choose their own the first time they sign in.</span>
+            <span className="hint">It's emailed to them with their username (when mail is set up). It's temporary: they must choose their own the first time they sign in.</span>
           </label>
           <label className="check span-2">
             <input type="checkbox" checked={form.is_admin} onChange={(e) => setForm({ ...form, is_admin: e.target.checked })} />

@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session as DbSession, selectinload
 
 from ..config import settings
 from ..database import get_db
 from ..deps import audit, require_admin, terminate_user_sessions
+from ..mailer import mail_configured, send_mail
 from ..models import Role, User
 from ..schemas import (
     AssignRolesRequest,
@@ -85,7 +86,7 @@ def list_users(q: str | None = None, db: DbSession = Depends(get_db), _: User = 
 
 
 @router.post("", response_model=UserDetail, status_code=201)
-def create_user(body: UserCreate, request: Request, db: DbSession = Depends(get_db),
+def create_user(body: UserCreate, request: Request, background: BackgroundTasks, db: DbSession = Depends(get_db),
                 admin: User = Depends(require_admin)):
     email = str(body.email).lower()
     _check_domain(email)
@@ -101,7 +102,16 @@ def create_user(body: UserCreate, request: Request, db: DbSession = Depends(get_
     db.add(user)
     audit(db, admin, "user.create", target=body.username, request=request)
     db.commit()
-    return _detail(user)
+    # Their sign-in details, by email (when a mail server is set). The password is temporary: the portal makes them
+    # choose their own at the first sign-in.
+    background.add_task(
+        send_mail, [email], "Your Access Portal account",
+        f"Hello,\n\nAn account was created for you in the company Access Portal.\n\n"
+        f"  Username: {user.username}\n  Email: {email}\n  Temporary password: {body.password}\n\n"
+        f"Sign in here: {settings.frontend_url}/login\n\n"
+        "You will be asked to choose your own password the first time you sign in.\n",
+    )
+    return _detail(user).model_copy(update={"emailed": mail_configured()})
 
 
 @router.get("/{user_id}", response_model=UserDetail)
