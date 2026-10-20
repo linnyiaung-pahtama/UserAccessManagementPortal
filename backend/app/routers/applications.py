@@ -204,8 +204,11 @@ def delete_role(app_id: int, role_id: int, request: Request, db: DbSession = Dep
                 admin: User = Depends(require_admin)):
     app = _get_app(db, app_id)
     role = _get_role(db, app, role_id)
-    audit(db, admin, "role.delete", target=f"{app.name}:{role.name}",
-          detail=f"{len(role.users)} user(s) lost this role", request=request)
+    if role.users:  # in use: take it away from people first, so nobody loses access by accident
+        n = len(role.users)
+        raise HTTPException(409, f'{n} user{"" if n == 1 else "s"} still {"has" if n == 1 else "have"} the role '
+                                 f'"{role.name}". Remove it from them first, then delete it.')
+    audit(db, admin, "role.delete", target=f"{app.name}:{role.name}", request=request)
     db.delete(role)
     db.commit()
 
@@ -272,6 +275,13 @@ def delete_permission(app_id: int, permission_id: int, request: Request, db: DbS
                       admin: User = Depends(require_admin)):
     app = _get_app(db, app_id)
     permission = _get_permission(db, app, permission_id)
+    # In use = someone holds it through a role. Roles that grant it to nobody don't block it (it's removed from them).
+    in_use = sorted(r.name for r in permission.roles if r.users)
+    if in_use:
+        names = ", ".join(f'"{n}"' for n in in_use)
+        raise HTTPException(409, f'"{permission.name}" is in use: users with the role{"" if len(in_use) == 1 else "s"} '
+                                 f"{names} have it. Untick it for those roles (or remove those users from them) "
+                                 "first, then delete it.")
     roles = ", ".join(r.name for r in permission.roles) or "no roles"
     audit(db, admin, "permission.delete", target=f"{app.name}:{permission.name}",
           detail=f"was granted to {roles}", request=request)

@@ -219,9 +219,23 @@ def test_permissions_flow_into_tokens(client: TestClient):
     info = client.get("/oauth/userinfo", headers={"Authorization": f"Bearer {refreshed['access_token']}"}).json()
     assert info["permissions"] == ["invoices.pay", "invoices.view"]
 
-    # Deleting a permission removes it from every role.
+    # A permission someone holds (bob, through clerk) can't be deleted; nor can a role someone has.
+    refused = client.delete(f"/api/admin/applications/{app_id}/permissions/{pay['id']}")
+    assert refused.status_code == 409 and "clerk" in refused.json()["detail"]
+    refused = client.delete(f"/api/admin/applications/{app_id}/roles/{clerk['id']}")
+    assert refused.status_code == 409 and "1 user still has" in refused.json()["detail"]
+
+    # Once nobody holds it, it can be deleted, and it's removed from the roles that granted it.
+    auditor = client.post(f"/api/admin/applications/{app_id}/roles", json={"name": "auditor"}).json()  # no users
+    client.put(f"/api/admin/applications/{app_id}/role-permissions",
+               json={"roles": {str(clerk["id"]): [view["id"]], str(auditor["id"]): [pay["id"]]}})
     assert client.delete(f"/api/admin/applications/{app_id}/permissions/{pay['id']}").status_code == 204
-    assert client.get(f"/api/admin/applications/{app_id}").json()["roles"][0]["permission_ids"] == [view["id"]]
+    roles = {r["name"]: r["permission_ids"] for r in client.get(f"/api/admin/applications/{app_id}").json()["roles"]}
+    assert roles == {"auditor": [], "clerk": [view["id"]]}
+    assert client.delete(f"/api/admin/applications/{app_id}/roles/{auditor['id']}").status_code == 204
+    client.put(f"/api/admin/users/{bob['id']}/roles", json={"role_ids": []})
+    assert client.delete(f"/api/admin/applications/{app_id}/roles/{clerk['id']}").status_code == 204
+    client.put(f"/api/admin/users/{bob['id']}/roles", json={"role_ids": []})  # leave bob as before
 
 
 def test_delete_application_with_granted_permissions_and_members(client: TestClient):

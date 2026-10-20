@@ -107,7 +107,7 @@ export default function PermissionsTab({ app, onChanged }: { app: Application; o
     const ok = await confirm({
       title: `Delete permission "${p.name}"?`,
       message: roles.length
-        ? <>It's removed from <strong>{roles.join(", ")}</strong>, and everyone with those roles loses it. Any page in {app.name} that checks it will deny access.</>
+        ? <>It's also removed from <strong>{roles.join(", ")}</strong>. It can only be deleted while nobody holds it through those roles.</>
         : "No role grants it yet.",
       confirmLabel: "Delete permission",
       danger: true,

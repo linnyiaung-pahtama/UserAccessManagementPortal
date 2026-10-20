@@ -124,11 +124,14 @@ export default function ApplicationDetailPage() {
 
   async function deleteRole(role: Role) {
     const holders = members.filter((m) => m.roles.includes(role.name)).length;
+    if (holders) {
+      // The portal refuses to delete a role in use, so nobody loses access by accident.
+      toast(`${holders} user${holders === 1 ? " still has" : "s still have"} "${role.name}". Remove it from them first (see the Users tab), then delete it.`, "error");
+      return;
+    }
     const ok = await confirm({
       title: `Delete role "${role.name}"?`,
-      message: holders
-        ? <><strong>{holders} user{holders === 1 ? "" : "s"}</strong> will lose this role. Anyone left with no role in {app?.name} loses access to it.</>
-        : "Nobody holds this role.",
+      message: "Nobody holds this role.",
       confirmLabel: "Delete role",
       danger: true,
     });
