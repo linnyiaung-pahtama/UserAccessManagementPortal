@@ -65,6 +65,7 @@ class UserCreate(BaseModel):
     password: str = Field(min_length=8, max_length=72)
     is_admin: bool = False
     is_active: bool = True
+    role_ids: list[int] = []  # system access to give straight away (roles in any systems)
 
 
 class UserUpdate(BaseModel):

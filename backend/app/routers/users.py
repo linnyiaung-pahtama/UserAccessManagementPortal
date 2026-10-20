@@ -91,6 +91,10 @@ def create_user(body: UserCreate, request: Request, background: BackgroundTasks,
     email = str(body.email).lower()
     _check_domain(email)
     _ensure_unique(db, username=body.username, email=email)
+    wanted = set(body.role_ids)
+    roles = db.scalars(select(Role).where(Role.id.in_(wanted))).all() if wanted else []
+    if len(roles) != len(wanted):
+        raise HTTPException(400, "One or more role ids do not exist")
     user = User(
         username=body.username,
         email=email,
@@ -98,20 +102,37 @@ def create_user(body: UserCreate, request: Request, background: BackgroundTasks,
         is_admin=body.is_admin,
         is_active=body.is_active,
         must_change_password=True,  # the admin chose this password; the user replaces it on first sign-in
+        roles=list(roles),
     )
     db.add(user)
     audit(db, admin, "user.create", target=body.username, request=request)
+    if roles:
+        audit(db, admin, "user.roles", target=body.username,
+              detail=f"added: {', '.join(sorted(_role_label(r) for r in roles))}", request=request)
     db.commit()
     # Their sign-in details, by email (when a mail server is set). The password is temporary: the portal makes them
     # choose their own at the first sign-in.
-    background.add_task(
-        send_mail, [email], "Your Access Portal account",
-        f"Hello,\n\nAn account was created for you in the company Access Portal.\n\n"
-        f"  Username: {user.username}\n  Email: {email}\n  Temporary password: {body.password}\n\n"
-        f"Sign in here: {settings.frontend_url}/login\n\n"
-        "You will be asked to choose your own password the first time you sign in.\n",
-    )
+    background.add_task(send_mail, [email], "Your Access Portal account", _welcome_email(user, body.password))
     return _detail(user).model_copy(update={"emailed": mail_configured()})
+
+
+def _welcome_email(user: User, password: str) -> str:
+    """The new account's sign-in details, and the systems they were given (with each one's address)."""
+    lines = [
+        "Hello,", "", "An account was created for you in the company Access Portal.", "",
+        f"  Username: {user.username}", f"  Email: {user.email}", f"  Temporary password: {password}", "",
+        f"Sign in here: {settings.frontend_url}/login", "",
+        "You will be asked to choose your own password the first time you sign in.",
+    ]
+    apps = {r.application_id: r.application for r in user.roles}
+    # Nobody can sign in to a disabled system, so it isn't listed.
+    granted = [(apps[a.application_id], a.roles) for a in _access(user) if apps[a.application_id].is_active]
+    if granted:
+        lines += ["", "You have access to:"]
+        for app, roles in granted:
+            where = f": {app.home_url}" if app.home_url else ""
+            lines.append(f"  - {app.name} ({', '.join(roles)}){where}")
+    return "\n".join(lines) + "\n"
 
 
 @router.get("/{user_id}", response_model=UserDetail)

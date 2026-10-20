@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { api, EMAIL_DOMAIN, EMAIL_PATTERN, errorMessage, generatePassword, type UserDetail, type UserListItem } from "../../api";
+import { api, EMAIL_DOMAIN, EMAIL_PATTERN, errorMessage, generatePassword, type Application, type UserDetail, type UserListItem } from "../../api";
 import { useFeedback } from "../../components/feedback";
 import Icon from "../../components/Icon";
 import { Alert, Avatar, Badge, EmptyState, Modal, PageHeader, PasswordInput, Spinner, StatusBadge, TimeAgo } from "../../components/ui";
@@ -28,6 +28,9 @@ export default function UsersPage() {
   const [form, setForm] = useState(emptyForm);
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
+  // System access to give the new user straight away (role ids), from the registered systems.
+  const [systems, setSystems] = useState<Application[] | null>(null);
+  const [roleIds, setRoleIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -41,8 +44,17 @@ export default function UsersPage() {
 
   function openForm() {
     setForm(emptyForm);
+    setRoleIds(new Set());
     setFormError("");
     setShowForm(true);
+    api.get<Application[]>("/api/admin/applications").then(setSystems).catch((e) => setFormError(errorMessage(e)));
+  }
+
+  function toggleRole(id: number) {
+    const next = new Set(roleIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setRoleIds(next);
   }
 
   async function handleCreate(e: FormEvent) {
@@ -50,10 +62,10 @@ export default function UsersPage() {
     setFormError("");
     setSaving(true);
     try {
-      const created = await api.post<UserDetail>("/api/admin/users", form);
+      const created = await api.post<UserDetail>("/api/admin/users", { ...form, role_ids: [...roleIds] });
       toast(created.emailed
-        ? `${created.username} created and emailed their sign-in details. Now choose their system access.`
-        : `${created.username} created. Mail isn't set up: give them their sign-in details yourself. Now choose their system access.`);
+        ? `${created.username} created and emailed their sign-in details${roleIds.size ? " and system links" : ""}.`
+        : `${created.username} created. Mail isn't set up: give them their sign-in details yourself.`);
       navigate(`/admin/users/${created.id}`);
     } catch (err) {
       setFormError(errorMessage(err));
@@ -138,6 +150,7 @@ export default function UsersPage() {
       <Modal
         open={showForm}
         title="New user"
+        width={680}
         onClose={() => setShowForm(false)}
         footer={
           <>
@@ -184,6 +197,32 @@ export default function UsersPage() {
             />
             <span className="hint">It's emailed to them with their username (when mail is set up). It's temporary: they must choose their own the first time they sign in.</span>
           </label>
+          <div className="span-2">
+            <div className="label">System access <span className="muted small">(optional; you can change it later)</span></div>
+            {!systems && <Spinner />}
+            {systems?.length === 0 && <p className="muted small">No systems registered yet.</p>}
+            {systems?.filter((a) => a.roles.length > 0).map((a) => (
+              <section key={a.id} className={`access-block${a.roles.some((r) => roleIds.has(r.id)) ? " granted" : ""}`}>
+                <div className="access-title">
+                  <Avatar name={a.name} size={24} square />
+                  <strong>{a.name}</strong>
+                  {!a.is_active && <Badge tone="red">System disabled</Badge>}
+                </div>
+                <div className="role-grid">
+                  {a.roles.map((role) => (
+                    <label key={role.id} className={`role-tile${roleIds.has(role.id) ? " on" : ""}`}>
+                      <input type="checkbox" checked={roleIds.has(role.id)} onChange={() => toggleRole(role.id)} />
+                      <span>
+                        <span className="role-name">{role.name}</span>
+                        {role.description && <span className="role-desc">{role.description}</span>}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </section>
+            ))}
+            <span className="hint">The welcome email lists these systems with their links.</span>
+          </div>
           <label className="check span-2">
             <input type="checkbox" checked={form.is_admin} onChange={(e) => setForm({ ...form, is_admin: e.target.checked })} />
             <span>
