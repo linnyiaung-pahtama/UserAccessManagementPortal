@@ -425,3 +425,31 @@ def test_discovery(client: TestClient):
     doc = client.get("/.well-known/openid-configuration").json()
     assert doc["issuer"] == "http://testserver"
     assert doc["token_endpoint"] == "http://testserver/oauth/token"
+
+
+def test_role_and_permission_names_are_lowercase(client: TestClient):
+    assert client.post("/api/auth/login", json={"username": "admin", "password": "test-admin-pass"}).status_code == 200
+    sys_ = client.post("/api/admin/applications", json={"name": "Case Sys", "redirect_uris": [REDIRECT]}).json()
+    base = f"/api/admin/applications/{sys_['id']}"
+
+    role = client.post(f"{base}/roles", json={"name": "  Approver "}).json()
+    assert role["name"] == "approver"
+    assert client.post(f"{base}/roles", json={"name": "APPROVER"}).status_code == 409  # same name, other case
+    renamed = client.patch(f"{base}/roles/{role['id']}", json={"name": "Lead-Approver"}).json()
+    assert renamed["name"] == "lead-approver"
+
+    perm = client.post(f"{base}/permissions", json={"name": "Invoices.View"}).json()
+    assert perm["name"] == "invoices.view"
+    assert client.post(f"{base}/permissions", json={"name": "INVOICES.VIEW"}).status_code == 409
+    assert client.patch(f"{base}/permissions/{perm['id']}", json={"name": "Invoices.Approve"}).json()["name"] == "invoices.approve"
+
+    # A name from before the rule keeps its capitals while only its description is edited.
+    from app.database import SessionLocal
+    from app.models import Role
+    with SessionLocal() as db:
+        db.get(Role, role["id"]).name = "Legacy"
+        db.commit()
+    kept = client.patch(f"{base}/roles/{role['id']}", json={"name": "Legacy", "description": "old one"}).json()
+    assert kept["name"] == "Legacy" and kept["description"] == "old one"
+
+    client.delete(base)

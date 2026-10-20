@@ -193,7 +193,7 @@ export default function PermissionsTab({ app, onChanged }: { app: Application; o
               editing?.id === p.id ? (
                 <li key={p.id} className="list-pad">
                   <form className="inline-form" onSubmit={savePermission}>
-                    <input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} required autoFocus pattern="[A-Za-z0-9._:\-]{1,100}" />
+                    <input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value.toLowerCase() })} required autoFocus pattern="[A-Za-z0-9._:\-]{1,100}" />
                     <input value={editing.description} placeholder="Description" onChange={(e) => setEditing({ ...editing, description: e.target.value })} />
                     <button className="btn small primary">Save</button>
                     <button type="button" className="btn small ghost" onClick={() => setEditing(null)}>Cancel</button>
@@ -218,7 +218,7 @@ export default function PermissionsTab({ app, onChanged }: { app: Application; o
           </ul>
         )}
         <form className="inline-form card-pad add-row" onSubmit={addPermission}>
-          <input placeholder="New permission, e.g. invoices.approve" value={newPerm.name} onChange={(e) => setNewPerm({ ...newPerm, name: e.target.value })} required pattern="[A-Za-z0-9._:\-]{1,100}" title="Letters, digits and . _ : -" />
+          <input placeholder="New permission, e.g. invoices.approve" value={newPerm.name} onChange={(e) => setNewPerm({ ...newPerm, name: e.target.value.toLowerCase() })} required pattern="[a-z0-9._:\-]{1,100}" title="Lowercase letters, digits and . _ : -" />
           <input placeholder="What it allows (optional)" value={newPerm.description} onChange={(e) => setNewPerm({ ...newPerm, description: e.target.value })} />
           <button className="btn primary"><Icon name="plus" /> Add permission</button>
         </form>

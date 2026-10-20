@@ -87,7 +87,7 @@ def _ensure_unique_name(db: DbSession, name: str, exclude_id: int | None = None)
 
 
 def _ensure_unique_role(db: DbSession, app: Application, name: str, exclude_id: int | None = None) -> None:
-    if any(r.name == name and r.id != exclude_id for r in app.roles):
+    if any(r.name.lower() == name.lower() and r.id != exclude_id for r in app.roles):  # "Admin" = "admin"
         raise HTTPException(409, f"Role '{name}' already exists in {app.name}")
 
 
@@ -189,9 +189,10 @@ def update_role(app_id: int, role_id: int, body: RoleUpdate, request: Request,
     app = _get_app(db, app_id)
     role = _get_role(db, app, role_id)
     old_label = f"{app.name}:{role.name}"
-    if body.name is not None:
-        _ensure_unique_role(db, app, body.name, exclude_id=role.id)
-        role.name = body.name
+    if body.name is not None and body.name != role.name:  # a rename: new names are lowercase
+        name = body.name.lower()
+        _ensure_unique_role(db, app, name, exclude_id=role.id)
+        role.name = name
     if body.description is not None:
         role.description = body.description.strip()
     audit(db, admin, "role.update", target=old_label, detail=f"now {app.name}:{role.name}", request=request)
@@ -237,7 +238,7 @@ def list_members(app_id: int, db: DbSession = Depends(get_db), _: User = Depends
 # ---------------------------------------------------------------- permissions
 
 def _ensure_unique_permission(app: Application, name: str, exclude_id: int | None = None) -> None:
-    if any(p.name == name and p.id != exclude_id for p in app.permissions):
+    if any(p.name.lower() == name.lower() and p.id != exclude_id for p in app.permissions):
         raise HTTPException(409, f"Permission '{name}' already exists in {app.name}")
 
 
@@ -259,9 +260,10 @@ def update_permission(app_id: int, permission_id: int, body: PermissionUpdate, r
     app = _get_app(db, app_id)
     permission = _get_permission(db, app, permission_id)
     old_label = f"{app.name}:{permission.name}"
-    if body.name is not None:
-        _ensure_unique_permission(app, body.name, exclude_id=permission.id)
-        permission.name = body.name
+    if body.name is not None and body.name != permission.name:  # a rename: new names are lowercase
+        name = body.name.lower()
+        _ensure_unique_permission(app, name, exclude_id=permission.id)
+        permission.name = name
     if body.description is not None:
         permission.description = body.description.strip()
     audit(db, admin, "permission.update", target=old_label, detail=f"now {app.name}:{permission.name}",

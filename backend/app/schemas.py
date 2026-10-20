@@ -4,8 +4,15 @@ from urllib.parse import urlparse
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 USERNAME_PATTERN = r"^[A-Za-z0-9._-]{3,100}$"
-ROLE_PATTERN = r"^[A-Za-z0-9._:-]{1,100}$"
-PERMISSION_PATTERN = r"^[A-Za-z0-9._:-]{1,100}$"
+ROLE_PATTERN = r"^[a-z0-9._:-]{1,100}$"  # lowercase only (names are lowercased when saved)
+PERMISSION_PATTERN = r"^[a-z0-9._:-]{1,100}$"
+# Accepted on updates so a role or permission made before names were lowercase can keep its name while its
+# description is edited; a rename is lowercased (routers/applications.py).
+EXISTING_NAME_PATTERN = r"^[A-Za-z0-9._:-]{1,100}$"
+
+
+def _lower(v):
+    return v.strip().lower() if isinstance(v, str) else v
 
 
 class ORM(BaseModel):
@@ -91,9 +98,11 @@ class PermissionCreate(BaseModel):
     name: str = Field(pattern=PERMISSION_PATTERN)
     description: str = ""
 
+    _lower_name = field_validator("name", mode="before")(_lower)
+
 
 class PermissionUpdate(BaseModel):
-    name: str | None = Field(default=None, pattern=PERMISSION_PATTERN)
+    name: str | None = Field(default=None, pattern=EXISTING_NAME_PATTERN)
     description: str | None = None
 
 
@@ -106,9 +115,11 @@ class RoleCreate(BaseModel):
     name: str = Field(pattern=ROLE_PATTERN)
     description: str = ""
 
+    _lower_name = field_validator("name", mode="before")(_lower)
+
 
 class RoleUpdate(BaseModel):
-    name: str | None = Field(default=None, pattern=ROLE_PATTERN)
+    name: str | None = Field(default=None, pattern=EXISTING_NAME_PATTERN)
     description: str | None = None
 
 

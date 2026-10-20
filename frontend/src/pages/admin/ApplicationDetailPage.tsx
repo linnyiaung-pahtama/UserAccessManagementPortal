@@ -214,7 +214,7 @@ export default function ApplicationDetailPage() {
                 editing?.id === role.id ? (
                   <li key={role.id} className="list-pad">
                     <form className="inline-form" onSubmit={saveRole}>
-                      <input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} required autoFocus />
+                      <input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value.toLowerCase() })} required autoFocus />
                       <input value={editing.description} placeholder="Description" onChange={(e) => setEditing({ ...editing, description: e.target.value })} />
                       <button className="btn small primary">Save</button>
                       <button type="button" className="btn small ghost" onClick={() => setEditing(null)}>Cancel</button>
@@ -241,7 +241,7 @@ export default function ApplicationDetailPage() {
             </ul>
           )}
           <form className="inline-form card-pad add-row" onSubmit={addRole}>
-            <input placeholder="New role name, e.g. approver" value={newRole.name} onChange={(e) => setNewRole({ ...newRole, name: e.target.value })} required pattern="[A-Za-z0-9._:\-]{1,100}" title="Letters, digits and . _ : -" />
+            <input placeholder="New role name, e.g. approver" value={newRole.name} onChange={(e) => setNewRole({ ...newRole, name: e.target.value.toLowerCase() })} required pattern="[a-z0-9._:\-]{1,100}" title="Lowercase letters, digits and . _ : -" />
             <input placeholder="Description (optional)" value={newRole.description} onChange={(e) => setNewRole({ ...newRole, description: e.target.value })} />
             <button className="btn primary"><Icon name="plus" /> Add role</button>
           </form>
