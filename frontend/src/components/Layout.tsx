@@ -41,7 +41,7 @@ export default function Layout() {
     navigate("/login", { replace: true });
   }
 
-  const displayName = user?.username || "";
+  const displayName = user?.full_name || user?.username || "";
 
   return (
     <div className={`app-shell${menuOpen ? " menu-open" : ""}`}>

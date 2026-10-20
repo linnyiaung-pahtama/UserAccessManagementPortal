@@ -141,11 +141,13 @@ def approve(request_id: int, body: AccessRequestApprove, request: Request, backg
     user = db.scalar(select(User).where(User.email == r.email))
     new_account = user is None
     if new_account:
-        if not body.username or not body.password:
-            raise HTTPException(400, "There is no account with this email yet: enter a username and a temporary password")
+        if not body.username or not body.full_name or not body.password:
+            raise HTTPException(400, "There is no account with this email yet: enter a username, their full name "
+                                     "and a temporary password")
         _check_domain(r.email)
         _ensure_unique(db, username=body.username)
-        user = User(username=body.username, email=r.email, password_hash=hash_password(body.password),
+        user = User(username=body.username, full_name=body.full_name, email=r.email,
+                    password_hash=hash_password(body.password),
                     must_change_password=True)  # temporary, like any admin-set password
         db.add(user)
         audit(db, admin, "user.create", target=user.username, detail="from an access request", request=request)
@@ -163,14 +165,15 @@ def approve(request_id: int, body: AccessRequestApprove, request: Request, backg
         # Chosen by the company: the temporary password goes in the email. It works once: the portal makes them
         # choose their own at the first sign-in.
         body_text = (
-            f"Hello,\n\nYour request for access to {app.name} has been approved. An account was created for you:\n\n"
+            f"Hello {user.display_name},\n\nYour request for access to {app.name} has been approved. "
+            "An account was created for you:\n\n"
             f"  Username: {user.username}\n  Temporary password: {body.password}\n\n"
             f"Sign in here: {_sign_in_link(app)}\n\n"
             "You will be asked to choose your own password the first time you sign in.\n"
         )
     else:
         body_text = (
-            f"Hello,\n\nYour request for access to {app.name} has been approved. Sign in with your existing "
+            f"Hello {user.display_name},\n\nYour request for access to {app.name} has been approved. Sign in with your existing "
             f"account ({user.username}):\n\n{_sign_in_link(app)}\n"
         )
     background.add_task(send_mail, [r.email], f"Your access to {app.name} is approved", body_text)

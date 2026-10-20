@@ -11,7 +11,7 @@ def test_new_user_is_emailed_their_sign_in_details(client: TestClient, monkeypat
 
     assert client.post("/api/auth/login", json={"username": "admin", "password": "test-admin-pass"}).status_code == 200
     created = client.post("/api/admin/users", json={
-        "username": "mail.min", "email": "Mail.Min@pahtama.com", "password": "first-pass-1"}).json()
+        "username": "mail.min", "full_name": "Test mail.min", "email": "Mail.Min@pahtama.com", "password": "first-pass-1"}).json()
     try:
         assert created["emailed"] is True
         assert len(sent) == 1
@@ -45,10 +45,10 @@ def test_new_user_with_system_access_gets_the_links(client: TestClient, monkeypa
     off, off_viewer = system("Mail Off", "http://off.local/", active=False)
     try:
         assert client.post("/api/admin/users", json={
-            "username": "mail.ko", "email": "mail.ko@pahtama.com", "password": "first-pass-1",
+            "username": "mail.ko", "full_name": "Test mail.ko", "email": "mail.ko@pahtama.com", "password": "first-pass-1",
             "role_ids": [999999]}).status_code == 400  # not a role: nothing created
         created = client.post("/api/admin/users", json={
-            "username": "mail.ko", "email": "mail.ko@pahtama.com", "password": "first-pass-1",
+            "username": "mail.ko", "full_name": "Test mail.ko", "email": "mail.ko@pahtama.com", "password": "first-pass-1",
             "role_ids": [hub_viewer["id"], plain_viewer["id"], off_viewer["id"]]}).json()
         assert sorted(created["role_ids"]) == sorted([hub_viewer["id"], plain_viewer["id"], off_viewer["id"]])
         body = sent[-1]
@@ -67,7 +67,7 @@ def test_new_user_with_system_access_gets_the_links(client: TestClient, monkeypa
 def test_no_mail_server_says_so(client: TestClient):
     assert client.post("/api/auth/login", json={"username": "admin", "password": "test-admin-pass"}).status_code == 200
     created = client.post("/api/admin/users", json={
-        "username": "mail.nomail", "email": "mail.nomail@pahtama.com", "password": "first-pass-1"}).json()
+        "username": "mail.nomail", "full_name": "Test mail.nomail", "email": "mail.nomail@pahtama.com", "password": "first-pass-1"}).json()
     try:
         assert created["emailed"] is False  # no SMTP_HOST in the tests
     finally:

@@ -15,7 +15,7 @@ export default function UserDetailPage() {
   const [apps, setApps] = useState<Application[]>([]);
   const [error, setError] = useState("");
 
-  const [profile, setProfile] = useState({ email: "", is_active: true, is_admin: false, password: "" });
+  const [profile, setProfile] = useState({ full_name: "", email: "", is_active: true, is_admin: false, password: "" });
   const [profileError, setProfileError] = useState("");
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [savingRoles, setSavingRoles] = useState(false);
@@ -31,7 +31,7 @@ export default function UserDetailPage() {
 
   function load(u: UserDetail) {
     setUser(u);
-    setProfile({ email: u.email, is_active: u.is_active, is_admin: u.is_admin, password: "" });
+    setProfile({ full_name: u.full_name, email: u.email, is_active: u.is_active, is_admin: u.is_admin, password: "" });
     setSelected(new Set(u.role_ids));
   }
 
@@ -64,9 +64,11 @@ export default function UserDetailPage() {
       });
       if (!ok) return;
     }
-    const { password, ...rest } = profile;
+    const { password, full_name, ...rest } = profile;
+    // An older account may have no name yet; it can still be saved without one.
+    const body = { ...rest, ...(full_name.trim() ? { full_name: full_name.trim() } : {}), ...(password ? { password } : {}) };
     try {
-      const u = await api.patch<UserDetail>(`/api/admin/users/${id}`, password ? { ...rest, password } : rest);
+      const u = await api.patch<UserDetail>(`/api/admin/users/${id}`, body);
       load(u);
       toast(password ? "Saved. Password reset and all sessions signed out." : "Account saved");
     } catch (err) {
@@ -117,7 +119,7 @@ export default function UserDetailPage() {
   if (error) return <Alert>{error}</Alert>;
   if (!user) return <Spinner />;
   const isSelf = me?.id === user.id;
-  const name = user.username;
+  const name = user.full_name || user.username;
   const systemsWithAccess = apps.filter((a) => a.roles.some((r) => selected.has(r.id))).length;
 
   return (
@@ -137,7 +139,7 @@ export default function UserDetailPage() {
             </span>
           </span>
         }
-        subtitle={<>{user.email} · last sign-in <TimeAgo value={user.last_login_at} /></>}
+        subtitle={<>{user.full_name && <>{user.username} · </>}{user.email} · last sign-in <TimeAgo value={user.last_login_at} /></>}
       />
 
       <div className="detail-grid">
@@ -186,6 +188,11 @@ export default function UserDetailPage() {
           <form className="card" onSubmit={saveProfile}>
             <h2>Account</h2>
             <Alert>{profileError}</Alert>
+            <label>
+              Full name
+              <input value={profile.full_name} onChange={(e) => setProfile({ ...profile, full_name: e.target.value })} maxLength={255} placeholder="e.g. Mya Thida" />
+              <span className="hint">Shown in the portal, and sent to systems as the person's name.</span>
+            </label>
             <label>
               Email
               <input type="email" value={profile.email} onChange={(e) => setProfile({ ...profile, email: e.target.value })} required />

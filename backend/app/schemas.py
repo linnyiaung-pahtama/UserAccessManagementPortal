@@ -36,6 +36,7 @@ class ChangePasswordRequest(BaseModel):
 class UserOut(ORM):
     id: int
     username: str
+    full_name: str = ""  # empty for accounts made before names were used: show the username instead
     email: str
     is_active: bool
     is_admin: bool
@@ -59,20 +60,30 @@ class UserListItem(UserOut):
     access: list[SystemAccess]
 
 
+def _strip(v):
+    return v.strip() if isinstance(v, str) else v
+
+
 class UserCreate(BaseModel):
     username: str = Field(pattern=USERNAME_PATTERN)
+    full_name: str = Field(min_length=1, max_length=255)
     email: EmailStr
     password: str = Field(min_length=8, max_length=72)
     is_admin: bool = False
     is_active: bool = True
     role_ids: list[int] = []  # system access to give straight away (roles in any systems)
 
+    _strip_name = field_validator("full_name", mode="before")(_strip)
+
 
 class UserUpdate(BaseModel):
+    full_name: str | None = Field(default=None, min_length=1, max_length=255)
     email: EmailStr | None = None
     password: str | None = Field(default=None, min_length=8, max_length=72)
     is_admin: bool | None = None
     is_active: bool | None = None
+
+    _strip_name = field_validator("full_name", mode="before")(_strip)
 
 
 class AssignRolesRequest(BaseModel):
@@ -221,6 +232,7 @@ class ApplicationWithSecret(ApplicationOut):
 class Member(BaseModel):
     user_id: int
     username: str
+    full_name: str = ""
     email: str
     is_active: bool
     roles: list[str]
@@ -308,7 +320,10 @@ class AccessRequestApprove(BaseModel):
     role_id: int
     # Only when there is no account with the request's email yet: the new account.
     username: str | None = Field(default=None, pattern=USERNAME_PATTERN)
+    full_name: str | None = Field(default=None, max_length=255)
     password: str | None = Field(default=None, min_length=8, max_length=72)
+
+    _strip_name = field_validator("full_name", mode="before")(_strip)
 
 
 class AccessRequestDecline(BaseModel):

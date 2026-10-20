@@ -76,7 +76,7 @@ export default function ChangePasswordPage() {
         <form className="auth-form" onSubmit={handleSubmit}>
           <h1>Choose your password</h1>
           <p className="muted">
-            Hi {user.username}. You signed in with a temporary password. Choose your own to continue.
+            Hi {user.full_name || user.username}. You signed in with a temporary password. Choose your own to continue.
           </p>
           <Alert>{error}</Alert>
           <label>

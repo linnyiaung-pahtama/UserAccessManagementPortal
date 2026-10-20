@@ -54,7 +54,7 @@ def test_full_sso_flow(client: TestClient):
     editor = client.post(f"/api/admin/applications/{hr['id']}/roles", json={"name": "editor"}).json()
 
     created_user = client.post("/api/admin/users", json={
-        "username": "alice", "email": "alice@pahtama.com", "password": "alice-pass-1",
+        "username": "alice", "full_name": "Test alice", "email": "alice@pahtama.com", "password": "alice-pass-1",
     })
     assert created_user.status_code == 201, created_user.text
     alice = created_user.json()
@@ -189,7 +189,7 @@ def test_permissions_flow_into_tokens(client: TestClient):
                       json={"roles": {str(clerk["id"]): [999]}}).status_code == 400
 
     bob = client.post("/api/admin/users", json={
-        "username": "bob", "email": "bob@pahtama.com", "password": "bob-pass-12",
+        "username": "bob", "full_name": "Test bob", "email": "bob@pahtama.com", "password": "bob-pass-12",
     }).json()
     client.put(f"/api/admin/users/{bob['id']}/roles", json={"role_ids": [clerk["id"]]})
 
@@ -253,7 +253,7 @@ def test_delete_application_with_granted_permissions_and_members(client: TestCli
     perm = client.post(f"/api/admin/applications/{app_id}/permissions", json={"name": "ops.run"}).json()
     client.put(f"/api/admin/applications/{app_id}/role-permissions", json={"roles": {str(lead["id"]): [perm["id"]]}})
     user = client.post("/api/admin/users", json={
-        "username": "ops.user", "email": "ops.user@pahtama.com", "password": "ops-pass-12",
+        "username": "ops.user", "full_name": "Test ops.user", "email": "ops.user@pahtama.com", "password": "ops-pass-12",
     }).json()
     client.put(f"/api/admin/users/{user['id']}/roles", json={"role_ids": [lead["id"]]})
 
@@ -281,7 +281,7 @@ def test_client_id_is_generated_from_the_name(client: TestClient):
 def test_new_user_must_change_password_before_any_system(client: TestClient):
     """An admin-set password is temporary: no system sign-in until the user picks their own."""
     dana = client.post("/api/admin/users", json={
-        "username": "dana", "email": "dana@pahtama.com", "password": "dana-temp-1"}).json()
+        "username": "dana", "full_name": "Test dana", "email": "dana@pahtama.com", "password": "dana-temp-1"}).json()
     assert dana["must_change_password"] is True
     hr = next(a for a in client.get("/api/admin/applications").json() if a["client_id"] == "hr")
     client.put(f"/api/admin/users/{dana['id']}/roles", json={"role_ids": [hr["roles"][0]["id"]]})
@@ -318,8 +318,8 @@ def test_new_user_must_change_password_before_any_system(client: TestClient):
 
 def test_user_email_must_be_company_domain(client: TestClient):
     def create(email):
-        return client.post("/api/admin/users", json={"username": email.split("@")[0], "email": email,
-                                                     "password": "erin-temp-1"})
+        return client.post("/api/admin/users", json={"username": email.split("@")[0], "full_name": "Erin Test",
+                                                     "email": email, "password": "erin-temp-1"})
     for bad in ("erin@gmail.com", "erin@pahtama.com.evil.com", "erin@sub.pahtama.com"):
         r = create(bad)
         assert r.status_code == 400 and "@pahtama.com" in r.json()["detail"], bad
@@ -381,7 +381,7 @@ def test_web_origins_cors_and_public_client(client: TestClient):
 
     # Full public-client flow: PKCE instead of a secret, then refresh.
     carol = client.post("/api/admin/users", json={
-        "username": "carol", "email": "carol@pahtama.com", "password": "carol-pass-1"}).json()
+        "username": "carol", "full_name": "Test carol", "email": "carol@pahtama.com", "password": "carol-pass-1"}).json()
     client.put(f"/api/admin/users/{carol['id']}/roles", json={"role_ids": [role["id"]]})
     with TestClient(app) as browser:
         first_sign_in(browser, "carol", "carol-pass-1")

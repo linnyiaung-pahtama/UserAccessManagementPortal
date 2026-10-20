@@ -108,13 +108,14 @@ def main() -> None:
         role_ids = {(cid, r["name"]): r["id"] for cid, a in apps.items() for r in a["roles"]}
 
         existing = {u["username"]: u for u in api.get("/api/admin/users").json()}
-        for username, _display_name, access, active in SAMPLE_USERS:
+        for username, display_name, access, active in SAMPLE_USERS:
             if username in existing:
                 user = api.get(f"/api/admin/users/{existing[username]['id']}").json()
                 verb = "update"
             else:
                 r = api.post("/api/admin/users", json={
                     "username": username,
+                    "full_name": display_name,
                     "email": f"{username}@example.com",
                     "password": password,
                     "is_active": active,

@@ -44,6 +44,8 @@ export const EMAIL_PATTERN = `[^@\\s]+@${EMAIL_DOMAIN.replace(/\./g, "\\.")}`;
 export interface User {
   id: number;
   username: string;
+  full_name: string; // "" for older accounts: show the username instead
+
   email: string;
   is_active: boolean;
   is_admin: boolean;
@@ -117,6 +119,7 @@ export interface ApplicationWithSecret extends Application {
 export interface Member {
   user_id: number;
   username: string;
+  full_name: string;
   email: string;
   is_active: boolean;
   roles: string[];

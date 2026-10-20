@@ -44,10 +44,10 @@ def test_request_approve_and_decline(client: TestClient, monkeypatch):
 
     # Approving a request with no account needs a username and password, and one of this system's roles.
     assert client.post(f"/api/admin/access-requests/{rid}/approve", json={"role_id": viewer["id"]}).status_code == 400
-    bad_role = {"role_id": other_role["id"], "username": "new.person", "password": "temp-pass-1"}
+    bad_role = {"role_id": other_role["id"], "username": "new.person", "full_name": "New Person", "password": "temp-pass-1"}
     assert client.post(f"/api/admin/access-requests/{rid}/approve", json=bad_role).status_code == 400
     approved = client.post(f"/api/admin/access-requests/{rid}/approve",
-                           json={"role_id": viewer["id"], "username": "new.person", "password": "temp-pass-1"}).json()
+                           json={"role_id": viewer["id"], "username": "new.person", "full_name": "New Person", "password": "temp-pass-1"}).json()
     assert approved["status"] == "approved" and approved["handled_by"] == "admin"
     assert approved["username"] == "new.person" and approved["current_roles"] == ["viewer"]
     user = client.get(f"/api/admin/users/{approved['user_id']}").json()

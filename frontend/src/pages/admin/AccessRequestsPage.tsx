@@ -29,7 +29,7 @@ export default function AccessRequestsPage() {
   const [error, setError] = useState("");
 
   const [approving, setApproving] = useState<AccessRequest | null>(null);
-  const [form, setForm] = useState({ role_id: "", username: "", password: "" });
+  const [form, setForm] = useState({ role_id: "", username: "", full_name: "", password: "" });
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
   const [declining, setDeclining] = useState<AccessRequest | null>(null);
@@ -48,6 +48,7 @@ export default function AccessRequestsPage() {
     setForm({
       role_id: r.roles.length === 1 ? String(r.roles[0].id) : "",
       username: r.user_id ? "" : usernameFrom(r.email),
+      full_name: "",
       password: "",
     });
     setFormError("");
@@ -62,7 +63,7 @@ export default function AccessRequestsPage() {
     try {
       const body = approving.user_id
         ? { role_id: Number(form.role_id) }
-        : { role_id: Number(form.role_id), username: form.username, password: form.password };
+        : { role_id: Number(form.role_id), username: form.username, full_name: form.full_name, password: form.password };
       const done = await api.post<AccessRequest>(`/api/admin/access-requests/${approving.id}/approve`, body);
       const told = approving.user_id
         ? done.emailed ? "They're emailed." : "Mail isn't set up: let them know yourself."
@@ -195,6 +196,16 @@ export default function AccessRequestsPage() {
             </p>
             {!approving.user_id && (
               <>
+                <label className="span-2">
+                  Full name
+                  <input
+                    value={form.full_name}
+                    required
+                    maxLength={255}
+                    placeholder="e.g. Mya Thida"
+                    onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+                  />
+                </label>
                 <label className="span-2">
                   Username
                   <input

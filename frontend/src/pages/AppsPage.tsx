@@ -19,7 +19,8 @@ export default function AppsPage() {
     api.get<MyApplication[]>("/api/me/applications").then(setApps).catch((e) => setError(errorMessage(e)));
   }, []);
 
-  const firstName = user?.username || "";
+  // The whole name: Myanmar names have no separate first name.
+  const firstName = user?.full_name || user?.username || "";
   const shown = apps?.filter((a) => `${a.name} ${a.description}`.toLowerCase().includes(q.toLowerCase())) ?? [];
 
   return (

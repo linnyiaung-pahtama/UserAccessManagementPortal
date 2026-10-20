@@ -29,8 +29,13 @@ class User(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     username: Mapped[str] = mapped_column(Unicode(100), unique=True, index=True)
     email: Mapped[str] = mapped_column(Unicode(255), unique=True, index=True)
-    # No longer used (users are identified by username only); kept so existing databases need no change.
+    # The person's real name, e.g. "Mya Thida". Systems get it as "name" in tokens (the username otherwise).
+    # Required for new accounts; older ones may have "" until an admin fills it in.
     full_name: Mapped[str] = mapped_column(Unicode(255), default="")
+
+    @property
+    def display_name(self) -> str:
+        return self.full_name or self.username
     password_hash: Mapped[str] = mapped_column(Unicode(255))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)  # may administer the portal

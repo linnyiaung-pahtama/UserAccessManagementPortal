@@ -228,7 +228,7 @@ def list_members(app_id: int, db: DbSession = Depends(get_db), _: User = Depends
     for user, role in rows:
         member = members.setdefault(
             user.id,
-            Member(user_id=user.id, username=user.username,
+            Member(user_id=user.id, username=user.username, full_name=user.full_name,
                    email=user.email, is_active=user.is_active, roles=[]),
         )
         member.roles.append(role.name)

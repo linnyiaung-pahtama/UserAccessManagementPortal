@@ -168,7 +168,7 @@ export default function ApplicationDetailPage() {
 
   const holders = (role: Role) => members.filter((m) => m.roles.includes(role.name)).length;
   const shownMembers = members.filter((m) =>
-    `${m.username} ${m.email} ${m.roles.join(" ")}`.toLowerCase().includes(memberQ.toLowerCase()),
+    `${m.full_name} ${m.username} ${m.email} ${m.roles.join(" ")}`.toLowerCase().includes(memberQ.toLowerCase()),
   );
 
   return (
@@ -266,9 +266,9 @@ export default function ApplicationDetailPage() {
               {shownMembers.map((m) => (
                 <li key={m.user_id}>
                   <Link to={`/admin/users/${m.user_id}`} className="list-row list-pad">
-                    <Avatar name={m.username} size={34} />
+                    <Avatar name={m.full_name || m.username} size={34} />
                     <div className="grow">
-                      <div className="person-name">{m.username} {!m.is_active && <Badge tone="red">Disabled</Badge>}</div>
+                      <div className="person-name">{m.full_name || m.username} {!m.is_active && <Badge tone="red">Disabled</Badge>}</div>
                       <div className="muted small">{m.username} · {m.email}</div>
                     </div>
                     <div className="chips">{m.roles.map((r) => <Badge key={r} tone="blue">{r}</Badge>)}</div>

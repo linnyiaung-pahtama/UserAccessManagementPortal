@@ -78,7 +78,7 @@ def list_users(q: str | None = None, db: DbSession = Depends(get_db), _: User = 
     )
     if q:
         like = f"%{q.strip()}%"
-        stmt = stmt.where(or_(User.username.ilike(like), User.email.ilike(like)))
+        stmt = stmt.where(or_(User.username.ilike(like), User.full_name.ilike(like), User.email.ilike(like)))
     return [
         UserListItem(**UserOut.model_validate(u).model_dump(), access=_access(u))
         for u in db.scalars(stmt).all()
@@ -97,6 +97,7 @@ def create_user(body: UserCreate, request: Request, background: BackgroundTasks,
         raise HTTPException(400, "One or more role ids do not exist")
     user = User(
         username=body.username,
+        full_name=body.full_name,
         email=email,
         password_hash=hash_password(body.password),
         is_admin=body.is_admin,
@@ -119,7 +120,7 @@ def create_user(body: UserCreate, request: Request, background: BackgroundTasks,
 def _welcome_email(user: User, password: str) -> str:
     """The new account's sign-in details, and the systems they were given (with each one's address)."""
     lines = [
-        "Hello,", "", "An account was created for you in the company Access Portal.", "",
+        f"Hello {user.display_name},", "", "An account was created for you in the company Access Portal.", "",
         f"  Username: {user.username}", f"  Email: {user.email}", f"  Temporary password: {password}", "",
         f"Sign in here: {settings.frontend_url}/login", "",
         "You will be asked to choose your own password the first time you sign in.",
@@ -149,6 +150,8 @@ def update_user(user_id: int, body: UserUpdate, request: Request, db: DbSession 
         raise HTTPException(400, "You cannot deactivate or remove admin rights from your own account")
 
     kill_sessions = False
+    if "full_name" in data:
+        user.full_name = data["full_name"]
     if "email" in data:
         email = str(data["email"]).lower()
         if email != user.email:  # only new addresses are checked, so older accounts can still be edited
