@@ -1,5 +1,5 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session as DbSession, selectinload
 
 from ..config import settings
@@ -37,7 +37,8 @@ def _detail(user: User) -> UserDetail:
 def _ensure_unique(db: DbSession, *, username: str | None = None, email: str | None = None,
                    exclude_id: int | None = None) -> None:
     if username:
-        existing = db.scalar(select(User).where(User.username == username))
+        # Capitals don't make a different username ("Mya" = "mya"), as SQL Server already treats them.
+        existing = db.scalar(select(User).where(func.lower(User.username) == username.lower()))
         if existing and existing.id != exclude_id:
             raise HTTPException(409, "Username is already taken")
     if email:
@@ -150,6 +151,11 @@ def update_user(user_id: int, body: UserUpdate, request: Request, db: DbSession 
         raise HTTPException(400, "You cannot deactivate or remove admin rights from your own account")
 
     kill_sessions = False
+    old_username = user.username
+    if "username" in data and data["username"] != user.username:
+        # Sign-in uses the new name from now on. (PAF links people by email, Project Hub by user id: unaffected.)
+        _ensure_unique(db, username=data["username"], exclude_id=user.id)
+        user.username = data["username"]
     if "full_name" in data:
         user.full_name = data["full_name"]
     if "email" in data:
@@ -170,7 +176,10 @@ def update_user(user_id: int, body: UserUpdate, request: Request, db: DbSession 
     if kill_sessions:
         terminate_user_sessions(db, user.id)
 
-    audit(db, admin, "user.update", target=user.username, detail=", ".join(sorted(data)), request=request)
+    changed = ", ".join(sorted(data))
+    if user.username != old_username:
+        changed += f" (username was {old_username})"
+    audit(db, admin, "user.update", target=user.username, detail=changed, request=request)
     db.commit()
     return _detail(user)
 
