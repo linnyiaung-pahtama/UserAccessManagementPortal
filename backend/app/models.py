@@ -74,6 +74,8 @@ class Application(Base):
     web_origins: Mapped[list[str]] = mapped_column(JSON, default=list)
     home_url: Mapped[str] = mapped_column(Unicode(500), default="")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Shown on the public Request access page, so people without access can ask for it (routers/access_requests.py).
+    allow_access_requests: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
     roles: Mapped[list["Role"]] = relationship(

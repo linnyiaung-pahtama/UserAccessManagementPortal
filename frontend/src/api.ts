@@ -106,6 +106,7 @@ export interface Application {
   home_url: string;
   is_active: boolean;
   is_confidential: boolean;
+  allow_access_requests: boolean; // listed on the public Request access page
   created_at: string;
   roles: Role[];
   permissions: Permission[];

@@ -192,6 +192,7 @@ class ApplicationUpdate(BaseModel):
     redirect_uris: list[str] | None = None
     web_origins: list[str] | None = None
     is_active: bool | None = None
+    allow_access_requests: bool | None = None
 
     @field_validator("redirect_uris")
     @classmethod
@@ -214,6 +215,7 @@ class ApplicationOut(ORM):
     home_url: str
     is_active: bool
     is_confidential: bool
+    allow_access_requests: bool = False  # listed on the public Request access page
 
     @field_validator("web_origins", mode="before")
     @classmethod

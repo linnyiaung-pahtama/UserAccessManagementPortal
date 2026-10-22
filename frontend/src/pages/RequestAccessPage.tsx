@@ -28,7 +28,8 @@ export default function RequestAccessPage() {
       .get<RequestableSystem[]>("/api/access-requests/systems")
       .then((list) => {
         setSystems(list);
-        const from = list.find((s) => s.client_id === clientIdFrom(next));
+        // The system that sent them here, or the only one open for requests.
+        const from = list.find((s) => s.client_id === clientIdFrom(next)) ?? (list.length === 1 ? list[0] : undefined);
         if (from) setSystemId(String(from.id));
       })
       .catch((e) => setError(errorMessage(e)));
@@ -83,6 +84,9 @@ export default function RequestAccessPage() {
             <h1>Request access</h1>
             <p className="muted">An administrator will review your request.</p>
             <Alert>{error}</Alert>
+            {systems?.length === 0 && (
+              <Alert kind="info">No system takes access requests here at the moment. Please contact your IT administrator.</Alert>
+            )}
             <label>
               Company email
               <input
@@ -104,7 +108,7 @@ export default function RequestAccessPage() {
                 {systems?.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
             </label>
-            <button className="btn primary block large" disabled={busy || !systems}>
+            <button className="btn primary block large" disabled={busy || !systems?.length}>
               {busy ? <><span className="spinner light" /> Sending…</> : "Send request"}
             </button>
             <p className="auth-alt">

@@ -94,7 +94,7 @@ A user can sign in to a system only if they hold **at least one** of its roles. 
 
 ### Access requests
 
-People without access click **Request access** under the sign-in form, enter their company email and choose a system (pre-selected when a system sent them to sign in). Admins see the requests under **Access requests** (the menu shows how many are open):
+People without access click **Request access** under the sign-in form, enter their company email and choose a system (pre-selected when a system sent them to sign in, or when only one is offered). Only systems with **Allow access requests** switched on (system → Settings; off by default) are offered. Admins see the requests under **Access requests** (the menu shows how many are open):
 
 - **Approve:** with no account for that email yet, enter a username (suggested from the email) and a temporary password, and choose a role: the account is created and gets the role, and must change its password at first sign-in. With an existing account, just choose the role to add. The person is emailed: a new account gets its username, **temporary password**, and where to sign in (the system's launch URL); an existing one gets the system and its username.
 - **Decline:** closes the request, with an optional reason. The person is emailed that it was declined, with the reason if there is one.

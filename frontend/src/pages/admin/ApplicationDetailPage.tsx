@@ -21,7 +21,7 @@ export default function ApplicationDetailPage() {
   const [tab, setTab] = useState<Tab>("roles");
   const [secret, setSecret] = useState<string | null>(null);
 
-  const [settings, setSettings] = useState({ name: "", description: "", home_url: "", redirect_uris: "", web_origins: "", is_active: true });
+  const [settings, setSettings] = useState({ name: "", description: "", home_url: "", redirect_uris: "", web_origins: "", is_active: true, allow_access_requests: false });
   const [settingsError, setSettingsError] = useState("");
 
   const [newRole, setNewRole] = useState({ name: "", description: "" });
@@ -36,6 +36,7 @@ export default function ApplicationDetailPage() {
     setSettings({
       name: a.name, description: a.description, home_url: a.home_url,
       redirect_uris: a.redirect_uris.join("\n"), web_origins: a.web_origins.join("\n"), is_active: a.is_active,
+      allow_access_requests: a.allow_access_requests,
     });
   }
 
@@ -312,6 +313,11 @@ export default function ApplicationDetailPage() {
               <input type="checkbox" checked={settings.is_active} onChange={(e) => setSettings({ ...settings, is_active: e.target.checked })} />
               <span className="switch-track" />
               <span>System active<span className="hint">When off, nobody can sign in to it through the portal.</span></span>
+            </label>
+            <label className="switch">
+              <input type="checkbox" checked={settings.allow_access_requests} onChange={(e) => setSettings({ ...settings, allow_access_requests: e.target.checked })} />
+              <span className="switch-track" />
+              <span>Allow access requests<span className="hint">Listed on the Request access page (under the sign-in form), so people without access can ask an admin for it.</span></span>
             </label>
             <button className="btn primary">Save settings</button>
           </form>

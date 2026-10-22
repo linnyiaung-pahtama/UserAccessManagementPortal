@@ -17,8 +17,10 @@ def test_request_approve_and_decline(client: TestClient, monkeypatch):
 
     assert client.post("/api/auth/login", json={"username": "admin", "password": "test-admin-pass"}).status_code == 200
     system = client.post("/api/admin/applications", json={"name": "Req System", "redirect_uris": [REDIRECT]}).json()
+    client.patch(f"/api/admin/applications/{system['id']}", json={"allow_access_requests": True})
     viewer = client.post(f"/api/admin/applications/{system['id']}/roles", json={"name": "viewer"}).json()
     other = client.post("/api/admin/applications", json={"name": "Req Other", "redirect_uris": [REDIRECT]}).json()
+    client.patch(f"/api/admin/applications/{other['id']}", json={"allow_access_requests": True})
     other_role = client.post(f"/api/admin/applications/{other['id']}/roles", json={"name": "user"}).json()
 
     with TestClient(app) as public:  # nobody signed in
@@ -95,6 +97,7 @@ def test_requests_are_rate_limited(client: TestClient, monkeypatch):
     access_requests._recent.clear()
     assert client.post("/api/auth/login", json={"username": "admin", "password": "test-admin-pass"}).status_code == 200
     system = client.post("/api/admin/applications", json={"name": "Req Limit", "redirect_uris": [REDIRECT]}).json()
+    client.patch(f"/api/admin/applications/{system['id']}", json={"allow_access_requests": True})
     with TestClient(app) as public:
         codes = [public.post("/api/access-requests", json={"email": f"limit{i}@pahtama.com", "application_id": system["id"]}).status_code
                  for i in range(access_requests.LIMIT_PER_HOUR + 1)]
@@ -106,3 +109,23 @@ def test_requests_are_rate_limited(client: TestClient, monkeypatch):
 def test_mail_is_off_without_a_mail_server():
     from app.mailer import send_mail
     assert send_mail(["admin@pahtama.com"], "x", "y") is False  # no SMTP_HOST in the tests
+
+
+def test_only_systems_that_allow_requests_are_offered(client: TestClient, monkeypatch):
+    monkeypatch.setattr(access_requests, "send_mail", lambda *a: True)
+    access_requests._recent.clear()
+    assert client.post("/api/auth/login", json={"username": "admin", "password": "test-admin-pass"}).status_code == 200
+    shut = client.post("/api/admin/applications", json={"name": "Req Closed", "redirect_uris": [REDIRECT]}).json()
+    assert shut["allow_access_requests"] is False  # off unless an admin turns it on
+    try:
+        with TestClient(app) as public:
+            assert "Req Closed" not in [s["name"] for s in public.get("/api/access-requests/systems").json()]
+            assert public.post("/api/access-requests", json={
+                "email": "closed.person@pahtama.com", "application_id": shut["id"]}).status_code == 400
+        on = client.patch(f"/api/admin/applications/{shut['id']}", json={"allow_access_requests": True}).json()
+        assert on["allow_access_requests"] is True
+        with TestClient(app) as public:
+            assert "Req Closed" in [s["name"] for s in public.get("/api/access-requests/systems").json()]
+    finally:
+        access_requests._recent.clear()
+        client.delete(f"/api/admin/applications/{shut['id']}")

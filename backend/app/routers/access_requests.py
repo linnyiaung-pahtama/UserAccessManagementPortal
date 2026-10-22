@@ -51,7 +51,9 @@ def _rate_limited(ip: str) -> bool:
 
 @public.get("/systems", response_model=list[RequestableSystem])
 def requestable_systems(db: DbSession = Depends(get_db)):
-    apps = db.scalars(select(Application).where(Application.is_active == true()).order_by(Application.name)).all()
+    """Active systems whose Settings allow access requests (others are never shown or accepted)."""
+    apps = db.scalars(select(Application).where(
+        Application.is_active == true(), Application.allow_access_requests == true()).order_by(Application.name)).all()
     return [RequestableSystem(id=a.id, name=a.name, client_id=a.client_id) for a in apps]
 
 
@@ -61,7 +63,7 @@ def create_request(body: AccessRequestCreate, request: Request, background: Back
     email = str(body.email).lower()
     _check_domain(email)
     app = db.get(Application, body.application_id)
-    if not app or not app.is_active:
+    if not app or not app.is_active or not app.allow_access_requests:
         raise HTTPException(400, "Choose a system from the list")
     ip = request.client.host if request.client else ""
     if _rate_limited(ip):
